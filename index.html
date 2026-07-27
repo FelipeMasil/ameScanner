@@ -1,66 +1,425 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
-    <title>Scanner Ambulatório</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Ambulatorial - Prontuários</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-main: #f4f7f9;
+            --bg-card: #ffffff;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: sans-serif;
-            padding: 20px;
-            background: #f0f2f5;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            padding: 24px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
         }
 
-        input {
-            padding: 10px;
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-badge {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        input[type="text"] {
+            padding: 12px 16px;
             font-size: 16px;
-            width: 200px;
-            margin-right: 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-weight: 500;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        input[type="text"]:disabled {
+            background: #f8fafc;
+            color: var(--text-muted);
+            cursor: not-allowed;
         }
 
         button {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
-            background: #0078D7;
-            color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+            white-space: nowrap;
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            box-shadow: 0 6px 10px -1px rgba(2, 132, 199, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: var(--success-hover);
+            box-shadow: 0 6px 10px -1px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-danger {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: var(--danger);
+            color: white;
         }
 
         button:disabled {
-            background: #ccc;
+            background: #e2e8f0;
+            color: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+            border-color: transparent;
         }
 
+        /* Painel de Sessão e Grade */
+        #painelSessao {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sessao-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .sessao-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge-prontuario {
+            background: #0284c7;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        .badge-contador {
+            background: #e2e8f0;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        .sessao-acoes {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* Grade de Visualização das Páginas */
+        .grade-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 16px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .pagina-card {
+            background: white;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .pagina-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+
+        .pagina-img-wrapper {
+            width: 100%;
+            height: 210px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .pagina-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: white;
+        }
+
+        .pagina-footer {
+            padding: 10px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .pagina-numero-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+        }
+
+        /* Barra de Status */
         #status {
-            margin-top: 15px;
-            font-weight: bold;
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.2s ease-out;
         }
 
-        .erro {
-            color: red;
+        #status.mostrar {
+            display: flex;
         }
 
         .sucesso {
-            color: green;
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .erro {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .info {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h2>Digitalização de Prontuário</h2>
-        <input type="text" id="prontuario" placeholder="Nº do Prontuário" autofocus>
-        <button id="btnScan">Digitalizar</button>
-        <div id="status"></div>
+    <header>
+        <h1>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"></path>
+                <rect x="2" y="7" width="20" height="13" rx="2"></rect>
+                <path d="M6 13h12"></path>
+                <path d="M6 17h8"></path>
+            </svg>
+            Scanner Ambulatorial
+        </h1>
+        <span class="header-badge">Prontuários Múltiplas Páginas</span>
+    </header>
+
+    <div class="card">
+        <div class="input-group">
+            <div class="input-wrapper">
+                <label for="prontuario">Número do Prontuário</label>
+                <input type="text" id="prontuario" placeholder="Ex.: 999888" autocomplete="off" autofocus>
+            </div>
+            <button id="btnScanInicial" class="btn-primary" style="margin-top: 22px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                Digitalizar 1ª Página
+            </button>
+        </div>
     </div>
+
+    <!-- Painel da Sessão Ativa com a Grade de Visualização -->
+    <div id="painelSessao" class="card">
+        <div class="sessao-header">
+            <div class="sessao-info">
+                <span id="badgeProntuario" class="badge-prontuario">Prontuário: --</span>
+                <span id="badgeContador" class="badge-contador">0 página(s)</span>
+            </div>
+            <div class="sessao-acoes">
+                <button id="btnAdicionarPagina" class="btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    + Adicionar Página
+                </button>
+                <button id="btnConcluir" class="btn-success">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    ✓ Concluir e Salvar PDF
+                </button>
+                <button id="btnCancelar" class="btn-danger">
+                    ✕ Cancelar
+                </button>
+            </div>
+        </div>
+
+        <div id="gradePaginas" class="grade-container">
+            <!-- Os cartões (cards) de cada página escaneada serão inseridos aqui dinamicamente pelo renderer.js -->
+        </div>
+    </div>
+
+    <div id="status"></div>
+
     <script src="renderer.js"></script>
 </body>
 

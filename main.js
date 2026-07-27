@@ -1,52 +1,57 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const { exec } = require('child_process');
 const path = require('path');
-
-// Defina aqui a pasta onde os arquivos serão salvos (pode ser um path de rede)
-const PASTA_DESTINO = 'C:\\EXAMES';
+const { obterConfiguracoes } = require('./src/config/configManager');
+const { digitalizarPagina, concluirDocumento, cancelarSessao, executarScan } = require('./src/services/scannerService');
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 600,
-        height: 400,
+        width: 800,
+        height: 650,
         webPreferences: {
-            // Isolamento de contexto é mandatório nas versões novas do Electron
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
-
     win.loadFile('index.html');
-    // win.webContents.openDevTools(); // Descomente para debugar
 }
 
 app.whenReady().then(() => {
-    createWindow();
+    const configInicial = obterConfiguracoes();
+    console.log('--- Configurações ativas ---');
+    console.log(' • Pasta de destino     :', configInicial.pastaDestino);
+    console.log(' • Pasta de contingência:', configInicial.pastaContingencia);
+    console.log(' • CLI NAPS2            :', configInicial.caminhoNaps2);
+    console.log('----------------------------');
 
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
-    });
+    createWindow();
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });
 
-// Listener IPC para o comando de scan
+// Digitaliza uma página única como imagem temporária JPG e retorna o base64 para a grade
+ipcMain.handle('digitalizar-pagina', async (event, { prontuario, indice }) => {
+    const configuracoes = obterConfiguracoes();
+    return await digitalizarPagina(prontuario, indice, configuracoes);
+});
+
+// Conclui a digitalização combinando todas as imagens da sessão em um único arquivo PDF
+ipcMain.handle('concluir-documento', async (event, { prontuario, paginas }) => {
+    const configuracoes = obterConfiguracoes();
+    return await concluirDocumento(prontuario, paginas, configuracoes);
+});
+
+// Cancela a sessão atual e remove as imagens temporárias geradas
+ipcMain.handle('cancelar-sessao', async (event, { prontuario, paginas }) => {
+    return cancelarSessao(prontuario, paginas);
+});
+
+// Compatibilidade retroativa
 ipcMain.handle('executar-scan', async (event, prontuario) => {
-    return new Promise((resolve, reject) => {
-        const arquivoSaida = path.join(PASTA_DESTINO, `${prontuario}.pdf`);
-
-        // Comando CLI do NAPS2. Certifique-se do path da instalação.
-        const cmd = `"C:\\Softwares\\NAPS2\\App\\NAPS2\\App\\NAPS2.console.exe" -p "DS640" -o "${arquivoSaida}"`;
-
-        exec(cmd, (error, stdout, stderr) => {
-            if (error) {
-                resolve({ sucesso: false, erro: error.message });
-            } else {
-                resolve({ sucesso: true, caminho: arquivoSaida });
-            }
-        });
-    });
+    const configuracoes = obterConfiguracoes();
+    return await executarScan(prontuario, configuracoes);
 });
