@@ -10,6 +10,15 @@ const btnConcluir = document.getElementById('btnConcluir');
 const btnCancelar = document.getElementById('btnCancelar');
 const divStatus = document.getElementById('status');
 
+// Elementos de Configuração
+const btnConfiguracoes = document.getElementById('btnConfiguracoes');
+const modalConfiguracoes = document.getElementById('modalConfiguracoes');
+const btnFecharModalConfig = document.getElementById('btnFecharModalConfig');
+const btnCancelarConfig = document.getElementById('btnCancelarConfig');
+const btnSalvarConfig = document.getElementById('btnSalvarConfig');
+const btnSelecionarPasta = document.getElementById('btnSelecionarPasta');
+const inputPastaDestino = document.getElementById('inputPastaDestino');
+
 // Estado da sessão atual de digitalização
 let prontuarioAtivo = '';
 let paginasSessao = []; // Array de { numero: number, caminho: string, base64: string }
@@ -179,3 +188,62 @@ function mostrarStatus(mensagem, classe) {
     divStatus.textContent = mensagem;
     divStatus.className = classe ? `${classe} mostrar` : 'mostrar';
 }
+
+// ----------------------------------------------------
+// Lógica de Configurações
+// ----------------------------------------------------
+
+async function abrirModalConfiguracoes() {
+    const config = await window.api.obterConfiguracoes();
+    inputPastaDestino.value = config.pastaDestino;
+    modalConfiguracoes.classList.add('mostrar');
+}
+
+function fecharModalConfiguracoes() {
+    modalConfiguracoes.classList.remove('mostrar');
+}
+
+btnConfiguracoes.addEventListener('click', abrirModalConfiguracoes);
+btnFecharModalConfig.addEventListener('click', fecharModalConfiguracoes);
+btnCancelarConfig.addEventListener('click', fecharModalConfiguracoes);
+
+btnSelecionarPasta.addEventListener('click', async () => {
+    const pastaSelecionada = await window.api.selecionarPasta();
+    if (pastaSelecionada) {
+        inputPastaDestino.value = pastaSelecionada;
+    }
+});
+
+btnSalvarConfig.addEventListener('click', async () => {
+    const novaPasta = inputPastaDestino.value.trim();
+    if (!novaPasta) {
+        alert("A pasta não pode ser vazia.");
+        return;
+    }
+    
+    const sucesso = await window.api.salvarConfiguracoes({ pastaDestino: novaPasta });
+    if (sucesso) {
+        fecharModalConfiguracoes();
+        mostrarStatus("Configurações salvas com sucesso.", "sucesso");
+        verificarDisponibilidadePasta(novaPasta);
+    } else {
+        alert("Erro ao salvar as configurações.");
+    }
+});
+
+async function verificarDisponibilidadePasta(caminho = null) {
+    if (!caminho) {
+        const config = await window.api.obterConfiguracoes();
+        caminho = config.pastaDestino;
+    }
+    
+    const disponivel = await window.api.verificarPasta(caminho);
+    if (!disponivel) {
+        mostrarStatus(`Atenção: A pasta de salvamento padrão (${caminho}) não está acessível. Os PDFs serão salvos na pasta de contingência.`, 'erro');
+    }
+}
+
+// Inicialização
+window.addEventListener('DOMContentLoaded', () => {
+    verificarDisponibilidadePasta();
+});

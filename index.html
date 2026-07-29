@@ -348,6 +348,96 @@
             color: #1e40af;
             border: 1px solid #bfdbfe;
         }
+
+        /* Configurações Modal */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-icon {
+            background: transparent;
+            color: var(--text-muted);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: var(--border);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+
+        .modal-overlay.mostrar {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            transition: transform 0.2s ease-out;
+        }
+
+        .modal-overlay.mostrar .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
     </style>
 </head>
 
@@ -363,7 +453,15 @@
             </svg>
             Scanner Ambulatorial
         </h1>
-        <span class="header-badge">Prontuários Múltiplas Páginas</span>
+        <div class="header-actions">
+            <span class="header-badge">Prontuários Múltiplas Páginas</span>
+            <button id="btnConfiguracoes" class="btn-icon" title="Configurações">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
     </header>
 
     <div class="card">
@@ -419,6 +517,34 @@
     </div>
 
     <div id="status"></div>
+
+    <!-- Modal de Configurações -->
+    <div id="modalConfiguracoes" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configurações</h2>
+                <button id="btnFecharModalConfig" class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-wrapper">
+                    <label for="inputPastaDestino">Pasta de Salvamento Padrão</label>
+                    <div class="input-group">
+                        <input type="text" id="inputPastaDestino" disabled>
+                        <button id="btnSelecionarPasta" class="btn-primary">Procurar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnCancelarConfig" class="btn-danger">Cancelar</button>
+                <button id="btnSalvarConfig" class="btn-success">Salvar Configurações</button>
+            </div>
+        </div>
+    </div>
 
     <script src="renderer.js"></script>
 </body>

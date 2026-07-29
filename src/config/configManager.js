@@ -11,7 +11,7 @@ function obterConfiguracoes() {
     let configuracoes = {
         pastaDestino: "C:\\EXAMES",
         pastaContingencia: "C:\\PRONTUARIOS",
-        caminhoNaps2: "C:\\Softwares\\NAPS2\\App\\NAPS2\\App\\NAPS2.Console.exe",
+        caminhoNaps2: "C:\\Softwares\\NAPS2\\NAPS2.Console.exe",
         perfilScanner: "DS640"
     };
 
@@ -97,8 +97,36 @@ function determinarPastaSalvar(configuracoes) {
     };
 }
 
+/**
+ * Salva as configurações fornecidas no arquivo config.json.
+ * @param {Object} novasConfiguracoes - Novas configurações a serem mescladas e salvas.
+ * @returns {boolean} Sucesso da operação.
+ */
+function salvarConfiguracoes(novasConfiguracoes) {
+    let caminhoConfig = path.join(path.dirname(app.getPath('exe')), 'config.json');
+
+    if (!fs.existsSync(caminhoConfig)) {
+        caminhoConfig = path.join(app.getAppPath(), 'config.json');
+    }
+
+    if (!fs.existsSync(caminhoConfig)) {
+        caminhoConfig = path.join(__dirname, '../../config.json');
+    }
+
+    try {
+        const configAtual = obterConfiguracoes();
+        const configFinal = { ...configAtual, ...novasConfiguracoes };
+        fs.writeFileSync(caminhoConfig, JSON.stringify(configFinal, null, 4), 'utf8');
+        return true;
+    } catch (err) {
+        console.error("Erro ao salvar o config.json.", err);
+        return false;
+    }
+}
+
 module.exports = {
     obterConfiguracoes,
     verificarPastaDisponivel,
-    determinarPastaSalvar
+    determinarPastaSalvar,
+    salvarConfiguracoes
 };

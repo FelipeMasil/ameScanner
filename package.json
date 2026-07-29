@@ -1,16 +1,43 @@
 {
   "name": "app-scanner",
   "version": "1.0.0",
+  "description": "Sistema de Digitalização Inteligente de Prontuários e Exames",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
+  },
   "build": {
     "appId": "com.ambulatorio.scanner",
+    "asar": true,
+    "compression": "maximum",
+    "removePackageScripts": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "config.json",
+      "src/**/*"
+    ],
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true
     }
   }
 }

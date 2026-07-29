@@ -1,6 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const { obterConfiguracoes } = require('./src/config/configManager');
+const { obterConfiguracoes, salvarConfiguracoes, verificarPastaDisponivel } = require('./src/config/configManager');
 const { digitalizarPagina, concluirDocumento, cancelarSessao, executarScan } = require('./src/services/scannerService');
 
 function createWindow() {
@@ -54,4 +54,27 @@ ipcMain.handle('cancelar-sessao', async (event, { prontuario, paginas }) => {
 ipcMain.handle('executar-scan', async (event, prontuario) => {
     const configuracoes = obterConfiguracoes();
     return await executarScan(prontuario, configuracoes);
+});
+
+// Configurações
+ipcMain.handle('obter-configuracoes', () => {
+    return obterConfiguracoes();
+});
+
+ipcMain.handle('salvar-configuracoes', (event, config) => {
+    return salvarConfiguracoes(config);
+});
+
+ipcMain.handle('selecionar-pasta', async (event) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openDirectory']
+    });
+    if (canceled || filePaths.length === 0) {
+        return null;
+    }
+    return filePaths[0];
+});
+
+ipcMain.handle('verificar-pasta', (event, caminho) => {
+    return verificarPastaDisponivel(caminho, false);
 });
