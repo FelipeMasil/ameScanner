@@ -1,6 +1,8 @@
 // Elementos da interface
 const inputProntuario = document.getElementById('prontuario');
-const btnScanInicial = document.getElementById('btnScanInicial');
+const btnBuscarAgendamento = document.getElementById('btnBuscarAgendamento');
+const painelDadosAgendamento = document.getElementById('painelDadosAgendamento');
+const btnIniciarScan = document.getElementById('btnIniciarScan');
 const painelSessao = document.getElementById('painelSessao');
 const badgeProntuario = document.getElementById('badgeProntuario');
 const badgeContador = document.getElementById('badgeContador');
@@ -19,27 +21,65 @@ const btnSalvarConfig = document.getElementById('btnSalvarConfig');
 const btnSelecionarPasta = document.getElementById('btnSelecionarPasta');
 const inputPastaDestino = document.getElementById('inputPastaDestino');
 
+// Elementos de Senha
+const modalSenha = document.getElementById('modalSenha');
+const inputSenha = document.getElementById('inputSenha');
+const btnFecharModalSenha = document.getElementById('btnFecharModalSenha');
+const btnCancelarSenha = document.getElementById('btnCancelarSenha');
+const btnConfirmarSenha = document.getElementById('btnConfirmarSenha');
+
 // Estado da sessão atual de digitalização
 let prontuarioAtivo = '';
 let paginasSessao = []; // Array de { numero: number, caminho: string, base64: string }
 let emExecucao = false;
 
-// Evento: Digitalizar 1ª página
-btnScanInicial.addEventListener('click', async () => {
+// Evento: Buscar dados do Agendamento
+btnBuscarAgendamento.addEventListener('click', async () => {
     const prontuario = inputProntuario.value.trim();
     if (!prontuario) {
-        mostrarStatus('Digite o número do prontuário para iniciar!', 'erro');
+        mostrarStatus('Digite o código de agendamento para iniciar!', 'erro');
         inputProntuario.focus();
         return;
     }
-    prontuarioAtivo = prontuario;
+    
+    mostrarStatus('Buscando agendamento...', 'info');
+    btnBuscarAgendamento.disabled = true;
+
+    try {
+        const resultado = await window.api.buscarAgendamento(prontuario);
+        if (resultado.sucesso) {
+            const dados = resultado.dados;
+            prontuarioAtivo = prontuario; // Pode ser o código do agendamento
+            
+            document.getElementById('infoPaciente').textContent = dados.paciente || '--';
+            document.getElementById('infoData').textContent = `${dados.dia}/${dados.mes}/${dados.ano}`;
+            document.getElementById('infoEspecialidade').textContent = dados.especialidade || '--';
+            document.getElementById('infoMedico').textContent = dados.medico || '--';
+            document.getElementById('infoProntuario').textContent = dados.prontuario || '--';
+            document.getElementById('infoDescricao').textContent = dados.descricao || '--';
+            
+            painelDadosAgendamento.style.display = 'flex';
+            mostrarStatus('Agendamento encontrado. Verifique os dados.', 'sucesso');
+        } else {
+            mostrarStatus(resultado.erro, 'erro');
+            painelDadosAgendamento.style.display = 'none';
+        }
+    } catch (err) {
+        mostrarStatus(`Erro: ${err.message}`, 'erro');
+    } finally {
+        btnBuscarAgendamento.disabled = false;
+    }
+});
+
+// Evento: Digitalizar 1ª página
+btnIniciarScan.addEventListener('click', async () => {
     await digitalizarProximaPagina();
 });
 
 // Evento: Pressionar Enter no campo do Prontuário
 inputProntuario.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !emExecucao) {
-        btnScanInicial.click();
+        btnBuscarAgendamento.click();
     }
 });
 
@@ -127,13 +167,13 @@ function atualizarPainelSessao() {
     if (paginasSessao.length === 0) {
         painelSessao.style.display = 'none';
         inputProntuario.disabled = false;
-        btnScanInicial.disabled = false;
+        btnBuscarAgendamento.disabled = false;
         return;
     }
 
     painelSessao.style.display = 'flex';
     inputProntuario.disabled = true;
-    btnScanInicial.disabled = true;
+    btnBuscarAgendamento.disabled = true;
 
     badgeProntuario.textContent = `Prontuário: ${prontuarioAtivo}`;
     badgeContador.textContent = `${paginasSessao.length} página(s)`;
@@ -161,9 +201,10 @@ function limparSessao() {
     paginasSessao = [];
     prontuarioAtivo = '';
     inputProntuario.value = '';
+    painelDadosAgendamento.style.display = 'none';
     atualizarPainelSessao();
     inputProntuario.disabled = false;
-    btnScanInicial.disabled = false;
+    btnBuscarAgendamento.disabled = false;
     inputProntuario.focus();
 }
 
@@ -172,7 +213,8 @@ function limparSessao() {
  */
 function alterarEstadoControles(emProgresso) {
     emExecucao = emProgresso;
-    btnScanInicial.disabled = emProgresso;
+    btnBuscarAgendamento.disabled = emProgresso;
+    btnIniciarScan.disabled = emProgresso;
     btnAdicionarPagina.disabled = emProgresso;
     btnConcluir.disabled = emProgresso;
     btnCancelar.disabled = emProgresso;
@@ -193,17 +235,43 @@ function mostrarStatus(mensagem, classe) {
 // Lógica de Configurações
 // ----------------------------------------------------
 
-async function abrirModalConfiguracoes() {
-    const config = await window.api.obterConfiguracoes();
-    inputPastaDestino.value = config.pastaDestino;
-    modalConfiguracoes.classList.add('mostrar');
+function abrirModalSenha() {
+    inputSenha.value = '';
+    modalSenha.classList.add('mostrar');
+    setTimeout(() => inputSenha.focus(), 100);
+}
+
+function fecharModalSenha() {
+    modalSenha.classList.remove('mostrar');
+}
+
+async function verificarSenha() {
+    if (inputSenha.value === "Ames@411") {
+        fecharModalSenha();
+        const config = await window.api.obterConfiguracoes();
+        inputPastaDestino.value = config.pastaDestino;
+        modalConfiguracoes.classList.add('mostrar');
+    } else {
+        alert("Senha incorreta.");
+        inputSenha.value = '';
+        inputSenha.focus();
+    }
 }
 
 function fecharModalConfiguracoes() {
     modalConfiguracoes.classList.remove('mostrar');
 }
 
-btnConfiguracoes.addEventListener('click', abrirModalConfiguracoes);
+// Eventos da Senha
+btnConfiguracoes.addEventListener('click', abrirModalSenha);
+btnFecharModalSenha.addEventListener('click', fecharModalSenha);
+btnCancelarSenha.addEventListener('click', fecharModalSenha);
+btnConfirmarSenha.addEventListener('click', verificarSenha);
+inputSenha.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') verificarSenha();
+});
+
+// Eventos de Configuração
 btnFecharModalConfig.addEventListener('click', fecharModalConfiguracoes);
 btnCancelarConfig.addEventListener('click', fecharModalConfiguracoes);
 

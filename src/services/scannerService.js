@@ -50,6 +50,20 @@ function limparArquivosSessao(caminhosPaginas = [], prontuario = '') {
     }
 }
 
+async function buscarAgendamento(id) {
+    try {
+        const response = await fetch(`http://localhost:3000/api/escala/busca-escala/${id}`);
+        const json = await response.json();
+        if (json.success && json.data && json.data.length > 0) {
+            return { sucesso: true, dados: json.data[0] };
+        } else {
+            return { sucesso: false, erro: 'Dados não encontrados para este código de agendamento.' };
+        }
+    } catch (err) {
+        return { sucesso: false, erro: `Erro ao consultar API: ${err.message}` };
+    }
+}
+
 /**
  * Digitaliza uma única página temporariamente em formato de imagem (JPG).
  * @param {string} prontuario - Identificador do prontuário/exame.
@@ -103,7 +117,7 @@ async function digitalizarPagina(prontuario, indicePagina, configuracoes) {
  * @returns {Promise<Object>} { sucesso: boolean, caminho?: string, contingencia?: boolean, erro?: string }
  */
 async function concluirDocumento(prontuario, caminhosPaginas, configuracoes) {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
         if (!Array.isArray(caminhosPaginas) || caminhosPaginas.length === 0) {
             return resolve({
                 sucesso: false,
@@ -116,7 +130,27 @@ async function concluirDocumento(prontuario, caminhosPaginas, configuracoes) {
             return resolve({ sucesso: false, erro: validacaoPasta.erro });
         }
 
-        const { pastaSalvar, usouContingencia } = validacaoPasta;
+        let { pastaSalvar, usouContingencia } = validacaoPasta;
+
+        let apiData = null;
+        try {
+            const response = await fetch(`http://localhost:3000/api/escala/busca-escala/${prontuario}`);
+            const json = await response.json();
+            if (json.success && json.data && json.data.length > 0) {
+                apiData = json.data[0];
+            } else {
+                return resolve({ sucesso: false, erro: 'Dados não encontrados para o prontuário na API.' });
+            }
+        } catch (err) {
+            return resolve({ sucesso: false, erro: `Erro ao consultar API: ${err.message}` });
+        }
+
+        const caminhoRelativoAPI = apiData.path;
+        const pastaDestinoCompleta = path.join(pastaSalvar, path.dirname(caminhoRelativoAPI));
+        
+        if (!fs.existsSync(pastaDestinoCompleta)) {
+            fs.mkdirSync(pastaDestinoCompleta, { recursive: true });
+        }
 
         if (!configuracoes.caminhoNaps2 || !fs.existsSync(configuracoes.caminhoNaps2)) {
             return resolve({
@@ -125,7 +159,7 @@ async function concluirDocumento(prontuario, caminhosPaginas, configuracoes) {
             });
         }
 
-        const arquivoSaida = path.join(pastaSalvar, `${prontuario}.pdf`);
+        const arquivoSaida = path.join(pastaSalvar, caminhoRelativoAPI);
         const listaImportacao = caminhosPaginas.join(';');
         const cmd = `"${configuracoes.caminhoNaps2}" -n 0 -i "${listaImportacao}" -o "${arquivoSaida}" -f`;
 
@@ -163,6 +197,7 @@ function cancelarSessao(prontuario, caminhosPaginas = []) {
 }
 
 module.exports = {
+    buscarAgendamento,
     digitalizarPagina,
     concluirDocumento,
     cancelarSessao,

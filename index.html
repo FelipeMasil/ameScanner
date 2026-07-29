@@ -467,17 +467,39 @@
     <div class="card">
         <div class="input-group">
             <div class="input-wrapper">
-                <label for="prontuario">Número do Prontuário</label>
-                <input type="text" id="prontuario" placeholder="Ex.: 999888" autocomplete="off" autofocus>
+                <label for="prontuario">Código de Agendamento</label>
+                <input type="text" id="prontuario" placeholder="Ex.: 12345" autocomplete="off" autofocus>
             </div>
-            <button id="btnScanInicial" class="btn-primary" style="margin-top: 22px;">
+            <button id="btnBuscarAgendamento" class="btn-primary" style="margin-top: 22px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Buscar Agendamento
+            </button>
+        </div>
+    </div>
+
+    <!-- Painel de Conferência de Dados -->
+    <div id="painelDadosAgendamento" class="card" style="display: none; flex-direction: column; gap: 16px;">
+        <h3 style="font-size: 16px; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px;">Dados do Agendamento (Conferência)</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+            <div style="grid-column: 1 / -1;"><strong>Paciente:</strong> <span id="infoPaciente">--</span></div>
+            <div><strong>Data da Escala:</strong> <span id="infoData">--</span></div>
+            <div><strong>Especialidade:</strong> <span id="infoEspecialidade">--</span></div>
+            <div><strong>Médico:</strong> <span id="infoMedico">--</span></div>
+            <div><strong>Prontuário:</strong> <span id="infoProntuario">--</span></div>
+            <div style="grid-column: 1 / -1;"><strong>Descrição:</strong> <span id="infoDescricao">--</span></div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button id="btnIniciarScan" class="btn-success">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                     stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="16"></line>
                     <line x1="8" y1="12" x2="16" y2="12"></line>
                 </svg>
-                Digitalizar 1ª Página
+                Iniciar Digitalização
             </button>
         </div>
     </div>
@@ -517,6 +539,31 @@
     </div>
 
     <div id="status"></div>
+
+    <!-- Modal de Senha -->
+    <div id="modalSenha" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Autenticação</h2>
+                <button id="btnFecharModalSenha" class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-wrapper">
+                    <label for="inputSenha">Digite a senha para acessar as configurações:</label>
+                    <input type="password" id="inputSenha" autocomplete="off" style="padding: 12px 16px; font-size: 16px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; margin-top: 8px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnCancelarSenha" class="btn-danger">Cancelar</button>
+                <button id="btnConfirmarSenha" class="btn-success">Confirmar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal de Configurações -->
     <div id="modalConfiguracoes" class="modal-overlay">

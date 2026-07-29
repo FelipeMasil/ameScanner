@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { obterConfiguracoes, salvarConfiguracoes, verificarPastaDisponivel } = require('./src/config/configManager');
-const { digitalizarPagina, concluirDocumento, cancelarSessao, executarScan } = require('./src/services/scannerService');
+const { digitalizarPagina, concluirDocumento, cancelarSessao, executarScan, buscarAgendamento } = require('./src/services/scannerService');
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -34,6 +34,10 @@ app.on('window-all-closed', () => {
 });
 
 // Digitaliza uma página única como imagem temporária JPG e retorna o base64 para a grade
+ipcMain.handle('buscar-agendamento', async (event, id) => {
+    return await buscarAgendamento(id);
+});
+
 ipcMain.handle('digitalizar-pagina', async (event, { prontuario, indice }) => {
     const configuracoes = obterConfiguracoes();
     return await digitalizarPagina(prontuario, indice, configuracoes);
