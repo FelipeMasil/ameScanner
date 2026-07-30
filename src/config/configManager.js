@@ -9,8 +9,9 @@ const fs = require('fs');
  */
 function obterConfiguracoes() {
     let configuracoes = {
+        urlApi: "http://172.35.0.14:3000/salutem-api/busca-escala/",
         pastaDestino: "C:\\EXAMES",
-        pastaContingencia: "C:\\PRONTUARIOS",
+        pastaContingencia: "C:\\Contingencia\\Scanner",
         caminhoNaps2: "C:\\Softwares\\NAPS2\\NAPS2.Console.exe",
         perfilScanner: "DS640"
     };
@@ -78,7 +79,7 @@ function determinarPastaSalvar(configuracoes) {
     // 1º Validação: Testa se a pasta destino existe e está acessível (SEM criá-la)
     if (!verificarPastaDisponivel(configuracoes.pastaDestino, false)) {
         console.warn(`Pasta destino (${configuracoes.pastaDestino}) inexistente ou inacessível. Usando pasta de contingência.`);
-        pastaSalvar = configuracoes.pastaContingencia || "C:\\PRONTUARIOS";
+        pastaSalvar = configuracoes.pastaContingencia || "C:\\Contingencia\\Scanner";
         usouContingencia = true;
 
         // 2º Validação: Verifica/cria a pasta de contingência

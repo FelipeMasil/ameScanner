@@ -1,12 +1,13 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { obterConfiguracoes, salvarConfiguracoes, verificarPastaDisponivel } = require('./src/config/configManager');
-const { digitalizarPagina, concluirDocumento, cancelarSessao, executarScan, buscarAgendamento } = require('./src/services/scannerService');
+const { digitalizarPagina, concluirDocumento, cancelarSessao, executarScan, buscarAgendamento, verificarApi, buscarAgendamentoContingencia, obterOpcoesContingencia } = require('./src/services/scannerService');
 
 function createWindow() {
     const win = new BrowserWindow({
         width: 800,
         height: 650,
+        icon: path.join(__dirname, 'src/assets/scan_icon.png'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -38,15 +39,27 @@ ipcMain.handle('buscar-agendamento', async (event, id) => {
     return await buscarAgendamento(id);
 });
 
+ipcMain.handle('buscar-agendamento-contingencia', async (event, id) => {
+    return await buscarAgendamentoContingencia(id);
+});
+
+ipcMain.handle('obter-opcoes-contingencia', async () => {
+    return await obterOpcoesContingencia();
+});
+
+ipcMain.handle('verificar-api', async () => {
+    return await verificarApi();
+});
+
 ipcMain.handle('digitalizar-pagina', async (event, { prontuario, indice }) => {
     const configuracoes = obterConfiguracoes();
     return await digitalizarPagina(prontuario, indice, configuracoes);
 });
 
 // Conclui a digitalização combinando todas as imagens da sessão em um único arquivo PDF
-ipcMain.handle('concluir-documento', async (event, { prontuario, paginas }) => {
+ipcMain.handle('concluir-documento', async (event, { prontuario, paginas, dadosAgendamento }) => {
     const configuracoes = obterConfiguracoes();
-    return await concluirDocumento(prontuario, paginas, configuracoes);
+    return await concluirDocumento(prontuario, paginas, configuracoes, dadosAgendamento);
 });
 
 // Cancela a sessão atual e remove as imagens temporárias geradas

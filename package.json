@@ -1,5 +1,6 @@
 {
-  "name": "app-scanner",
+  "name": "amescanner",
+  "productName": "AmeScanner",
   "version": "1.0.0",
   "description": "Sistema de Digitalização Inteligente de Prontuários e Exames",
   "main": "main.js",
@@ -12,7 +13,9 @@
     "electron-builder": "^26.15.3"
   },
   "build": {
-    "appId": "com.ambulatorio.scanner",
+    "appId": "com.amescanner.app",
+    "productName": "AmeScanner",
+    "icon": "src/assets/scan_icon.png",
     "asar": true,
     "compression": "maximum",
     "removePackageScripts": true,

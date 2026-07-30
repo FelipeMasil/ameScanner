@@ -1,8 +1,8 @@
 const { app } = require('electron');
 const { exec } = require('child_process');
-const path = require('path');
 const fs = require('fs');
-const { determinarPastaSalvar } = require('../config/configManager');
+const path = require('path');
+const { obterConfiguracoes, determinarPastaSalvar } = require('../config/configManager');
 
 /**
  * Cria ou recupera a pasta temporária para armazenar as páginas da sessão atual do prontuário.
@@ -52,7 +52,10 @@ function limparArquivosSessao(caminhosPaginas = [], prontuario = '') {
 
 async function buscarAgendamento(id) {
     try {
-        const response = await fetch(`http://localhost:3000/api/escala/busca-escala/${id}`);
+        const config = obterConfiguracoes();
+        const baseUrl = config.urlApi || 'http://172.35.0.14:3000/salutem-api/busca-escala/';
+        const urlFinal = baseUrl.endsWith('/') ? `${baseUrl}${id}` : `${baseUrl}/${id}`;
+        const response = await fetch(urlFinal);
         const json = await response.json();
         if (json.success && json.data && json.data.length > 0) {
             return { sucesso: true, dados: json.data[0] };
@@ -61,6 +64,102 @@ async function buscarAgendamento(id) {
         }
     } catch (err) {
         return { sucesso: false, erro: `Erro ao consultar API: ${err.message}` };
+    }
+}
+
+async function verificarApi() {
+    try {
+        const config = obterConfiguracoes();
+        const baseUrl = config.urlApi || 'http://172.35.0.14:3000/salutem-api/busca-escala/';
+        const urlFinal = baseUrl.endsWith('/') ? `${baseUrl}0` : `${baseUrl}/0`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        // Fazemos uma chamada simples com ID '0' para testar a conectividade
+        const response = await fetch(urlFinal, {
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        return { disponivel: true };
+    } catch (err) {
+        return { disponivel: false, erro: err.message };
+    }
+}
+
+/**
+ * Lê e faz parse do conteúdo de um dos arquivos .js da pasta contingencia.
+ */
+function parseContingenciaFile(fileName) {
+    try {
+        const filePath = path.join('C:\\Contingencia\\assets\\dados', fileName);
+        if (!fs.existsSync(filePath)) return null;
+        const content = fs.readFileSync(filePath, 'utf8');
+        // Acha onde o JSON começa e termina
+        const startIndex = content.indexOf('{');
+        const endIndex = content.lastIndexOf('}');
+        if (startIndex === -1 || endIndex === -1) return null;
+        const jsonStr = content.substring(startIndex, endIndex + 1);
+        return JSON.parse(jsonStr);
+    } catch (err) {
+        console.error(`Erro ao fazer parse de ${fileName}:`, err);
+        return null;
+    }
+}
+
+/**
+ * Realiza a busca no modo contingência lendo os arquivos locais
+ */
+async function buscarAgendamentoContingencia(id) {
+    try {
+        const agendamentoData = parseContingenciaFile('agendamento.js');
+        const pacientesData = parseContingenciaFile('pacientes.js');
+        const prestadoresData = parseContingenciaFile('prestador.js');
+
+        if (!agendamentoData || !agendamentoData.agendamento) {
+            return { sucesso: false, erro: 'Base de contingência (agendamentos) indisponível.' };
+        }
+
+        const idNum = parseInt(id, 10);
+        
+        // Pode ser agm_id_externo ou agm_pct_id 
+        const agendamento = agendamentoData.agendamento.find(a => a.agm_id_externo == idNum || a.agm_pct_id == idNum);
+        
+        if (!agendamento) {
+            return { sucesso: false, erro: 'Dados não encontrados para este código na contingência local.' };
+        }
+
+        let pacienteInfo = { pct_nome: '--' };
+        if (pacientesData && pacientesData.pacientes) {
+            const pac = pacientesData.pacientes.find(p => p.pct_id == agendamento.agm_pct_id);
+            if (pac) pacienteInfo = pac;
+        }
+
+        let prestadorInfo = { ptd_nome: '--' };
+        if (prestadoresData && prestadoresData.prestadores) {
+            const ptd = prestadoresData.prestadores.find(p => p.ptd_id == agendamento.agm_ptd_id);
+            if (ptd) prestadorInfo = ptd;
+        }
+
+        // Formata os dados imitando a API
+        const [ano, mes, dia] = (agendamento.agm_data || '----/--/--').split('-');
+
+        const formatado = {
+            paciente: pacienteInfo.pct_nome,
+            dia: dia || '--',
+            mes: mes || '--',
+            ano: ano || '--',
+            especialidade: agendamento.agm_especialidade,
+            medico: prestadorInfo.ptd_nome,
+            prontuario: agendamento.agm_pct_id,
+            descricao: agendamento.agm_descricao,
+            contingencia: true
+        };
+
+        return { sucesso: true, dados: formatado };
+    } catch (err) {
+        return { sucesso: false, erro: `Erro na busca local (contingência): ${err.message}` };
     }
 }
 
@@ -114,9 +213,10 @@ async function digitalizarPagina(prontuario, indicePagina, configuracoes) {
  * @param {string} prontuario - Identificador do prontuário/exame.
  * @param {string[]} caminhosPaginas - Array com o caminho de cada imagem JPG escaneada.
  * @param {Object} configuracoes - Configurações carregadas do config.json.
+ * @param {Object} [dadosAgendamento] - Opcional. Dados recuperados em contingência.
  * @returns {Promise<Object>} { sucesso: boolean, caminho?: string, contingencia?: boolean, erro?: string }
  */
-async function concluirDocumento(prontuario, caminhosPaginas, configuracoes) {
+async function concluirDocumento(prontuario, caminhosPaginas, configuracoes, dadosAgendamento = null) {
     return new Promise(async (resolve) => {
         if (!Array.isArray(caminhosPaginas) || caminhosPaginas.length === 0) {
             return resolve({
@@ -133,20 +233,50 @@ async function concluirDocumento(prontuario, caminhosPaginas, configuracoes) {
         let { pastaSalvar, usouContingencia } = validacaoPasta;
 
         let apiData = null;
-        try {
-            const response = await fetch(`http://localhost:3000/api/escala/busca-escala/${prontuario}`);
-            const json = await response.json();
-            if (json.success && json.data && json.data.length > 0) {
-                apiData = json.data[0];
-            } else {
-                return resolve({ sucesso: false, erro: 'Dados não encontrados para o prontuário na API.' });
+        let isContingenciaLocal = false;
+        
+        if (dadosAgendamento && dadosAgendamento.contingencia) {
+            isContingenciaLocal = true;
+        } else {
+            try {
+                const config = obterConfiguracoes();
+                const baseUrl = config.urlApi || 'http://172.35.0.14:3000/salutem-api/busca-escala/';
+                const urlFinal = baseUrl.endsWith('/') ? `${baseUrl}${prontuario}` : `${baseUrl}/${prontuario}`;
+                const response = await fetch(urlFinal);
+                const json = await response.json();
+                if (json.success && json.data && json.data.length > 0) {
+                    apiData = json.data[0];
+                } else {
+                    isContingenciaLocal = true;
+                }
+            } catch (err) {
+                isContingenciaLocal = true;
             }
-        } catch (err) {
-            return resolve({ sucesso: false, erro: `Erro ao consultar API: ${err.message}` });
+        }
+        
+        if (isContingenciaLocal && !dadosAgendamento) {
+            return resolve({ sucesso: false, erro: 'Falha na API e dados de contingência locais ausentes.' });
         }
 
-        const caminhoRelativoAPI = apiData.path;
-        const pastaDestinoCompleta = path.join(pastaSalvar, path.dirname(caminhoRelativoAPI));
+        let pastaDestinoCompleta;
+        let arquivoSaida;
+
+        if (isContingenciaLocal) {
+            const sanitize = (name) => (name || 'Indefinido').toString().replace(/[<>:"/\\|?*]+/g, '-').trim();
+            const ano = sanitize(dadosAgendamento.ano);
+            const mes = sanitize(dadosAgendamento.mes);
+            const dia = sanitize(dadosAgendamento.dia);
+            const esp = sanitize(dadosAgendamento.especialidade);
+            const med = sanitize(dadosAgendamento.medico);
+            
+            // Usa a pastaSalvar que já passou pelo teste de disponibilidade (padrão ou contingência)
+            pastaDestinoCompleta = path.join(pastaSalvar, ano, mes, dia, esp, med);
+            arquivoSaida = path.join(pastaDestinoCompleta, `${prontuario}.pdf`);
+        } else {
+            const caminhoRelativoAPI = apiData.path;
+            pastaDestinoCompleta = path.join(pastaSalvar, path.dirname(caminhoRelativoAPI));
+            arquivoSaida = path.join(pastaSalvar, caminhoRelativoAPI);
+        }
         
         if (!fs.existsSync(pastaDestinoCompleta)) {
             fs.mkdirSync(pastaDestinoCompleta, { recursive: true });
@@ -159,7 +289,6 @@ async function concluirDocumento(prontuario, caminhosPaginas, configuracoes) {
             });
         }
 
-        const arquivoSaida = path.join(pastaSalvar, caminhoRelativoAPI);
         const listaImportacao = caminhosPaginas.join(';');
         const cmd = `"${configuracoes.caminhoNaps2}" -n 0 -i "${listaImportacao}" -o "${arquivoSaida}" -f`;
 
@@ -196,8 +325,59 @@ function cancelarSessao(prontuario, caminhosPaginas = []) {
     return { sucesso: true };
 }
 
+function obterOpcoesContingencia() {
+    const agendamentoData = parseContingenciaFile('agendamento.js');
+    const prestadoresData = parseContingenciaFile('prestador.js');
+
+    const especialidades = new Set();
+    if (agendamentoData && agendamentoData.agendamento) {
+        agendamentoData.agendamento.forEach(a => {
+            if (a.agm_especialidade) especialidades.add(a.agm_especialidade);
+        });
+    }
+    if (prestadoresData && prestadoresData.prestadores) {
+        prestadoresData.prestadores.forEach(p => {
+            if (p.ptd_especialidade) especialidades.add(p.ptd_especialidade);
+        });
+    }
+
+    const profissionais = [];
+    if (prestadoresData && prestadoresData.prestadores) {
+        prestadoresData.prestadores.forEach(p => {
+            if (p.ptd_nome && p.ptd_especialidade) {
+                profissionais.push({
+                    nome: p.ptd_nome,
+                    especialidade: p.ptd_especialidade
+                });
+            }
+        });
+    }
+
+    const pacientes = [];
+    const pacientesData = parseContingenciaFile('pacientes.js');
+    if (pacientesData && pacientesData.pacientes) {
+        pacientesData.pacientes.forEach(p => {
+            if (p.pct_nome && p.pct_id) {
+                pacientes.push({
+                    nome: p.pct_nome,
+                    id: p.pct_id
+                });
+            }
+        });
+    }
+
+    return {
+        especialidades: Array.from(especialidades).sort(),
+        profissionais: profissionais.sort((a, b) => a.nome.localeCompare(b.nome)),
+        pacientes: pacientes.sort((a, b) => a.nome.localeCompare(b.nome))
+    };
+}
+
 module.exports = {
     buscarAgendamento,
+    verificarApi,
+    buscarAgendamentoContingencia,
+    obterOpcoesContingencia,
     digitalizarPagina,
     concluirDocumento,
     cancelarSessao,
