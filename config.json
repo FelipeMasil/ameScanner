@@ -1,6 +1,22 @@
 {
-    "pastaDestino": "E:\\ftp",
+    "urlApi": "http://172.35.0.14:3000/salutem-api/busca-escala/",
+    "pastaDestino": "\\\\amesged\\Digitalizacao\\AmeScanner-teste",
     "pastaContingencia": "C:\\Contingencia\\Scanner",
     "caminhoNaps2": "C:\\Softwares\\NAPS2\\App\\NAPS2\\App\\NAPS2.Console.exe",
-    "perfilScanner": "DS640"
+    "perfilScanner": "DS640",
+    "tiposFicha": {
+        "Ficha": [
+            "FICHA DE ATENDIMENTO AMBULATORIAL",
+            "GUIA DE ENCAMINHAMENTO",
+            "FICHA CONSENTIMENTO",
+            "ATENDIMENTO ENFERMAGEM",
+            "TERMO DE RETIRADA DE AGENDAMENTO",
+            "EVOLUÇÃO SERVIÇO SOCIAL",
+            "ORIENTAÇÃO SERVIÇO SOCIAL",
+            "RELATÓRIO DE TRANSFERÊNCIA INTER-HOSPITALAR",
+            "FICHA DE ORIENTAÇÃO",
+            "SOLICITAÇÃO DE INTERCONSULTA"
+        ],
+        "Laudo": []
+    }
 }

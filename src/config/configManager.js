@@ -13,7 +13,19 @@ function obterConfiguracoes() {
         pastaDestino: "C:\\EXAMES",
         pastaContingencia: "C:\\Contingencia\\Scanner",
         caminhoNaps2: "C:\\Softwares\\NAPS2\\NAPS2.Console.exe",
-        perfilScanner: "DS640"
+        perfilScanner: "DS640",
+        tiposFicha: [
+            "FICHA DE ATENDIMENTO AMBULATORIAL",
+            "GUIA DE ENCAMINHAMENTO",
+            "FICHA CONSENTIMENTO",
+            "ATENDIMENTO ENFERMAGEM",
+            "TERMO DE RETIRADA DE AGENDAMENTO",
+            "EVOLUÇÃO SERVIÇO SOCIAL",
+            "ORIENTAÇÃO SERVIÇO SOCIAL",
+            "RELATÓRIO DE TRANSFERÊNCIA INTER-HOSPITALAR",
+            "FICHA DE ORIENTAÇÃO",
+            "SOLICITAÇÃO DE INTERCONSULTA"
+        ]
     };
 
     // Tenta na pasta do executável (.exe empacotado)
@@ -25,16 +37,34 @@ function obterConfiguracoes() {
     }
 
     // Fallback adicional por segurança usando path relativo à estrutura do projeto
-    if (!fs.existsSync(caminhoConfig)) {
-        caminhoConfig = path.join(__dirname, '../../config.json');
-    }
+    // Lê a configuração base (se existir no ProgramData)
+    let programDataPath = process.env.PROGRAMDATA || process.env.ALLUSERSPROFILE || 'C:\\ProgramData';
+    let caminhoGlobal = path.join(programDataPath, 'AmeScanner', 'config.json');
 
-    if (fs.existsSync(caminhoConfig)) {
+    // Tenta ler primeiro do caminho global
+    if (fs.existsSync(caminhoGlobal)) {
         try {
-            const conteudo = fs.readFileSync(caminhoConfig, 'utf8');
+            const conteudo = fs.readFileSync(caminhoGlobal, 'utf8');
             configuracoes = { ...configuracoes, ...JSON.parse(conteudo) };
         } catch (err) {
-            console.error("Erro ao ler o config.json. Usando configuração padrão.", err);
+            console.error("Erro ao ler o config.json global.", err);
+        }
+    } else {
+        // Se não existir global, tenta ler o que foi empacotado no .exe
+        let caminhoConfig = path.join(path.dirname(app.getPath('exe')), 'config.json');
+        if (!fs.existsSync(caminhoConfig)) {
+            caminhoConfig = path.join(app.getAppPath(), 'config.json');
+        }
+        if (!fs.existsSync(caminhoConfig)) {
+            caminhoConfig = path.join(__dirname, '../../config.json');
+        }
+        if (fs.existsSync(caminhoConfig)) {
+            try {
+                const conteudo = fs.readFileSync(caminhoConfig, 'utf8');
+                configuracoes = { ...configuracoes, ...JSON.parse(conteudo) };
+            } catch (err) {
+                console.error("Erro ao ler o config.json base.", err);
+            }
         }
     }
 
@@ -104,23 +134,21 @@ function determinarPastaSalvar(configuracoes) {
  * @returns {boolean} Sucesso da operação.
  */
 function salvarConfiguracoes(novasConfiguracoes) {
-    let caminhoConfig = path.join(path.dirname(app.getPath('exe')), 'config.json');
-
-    if (!fs.existsSync(caminhoConfig)) {
-        caminhoConfig = path.join(app.getAppPath(), 'config.json');
-    }
-
-    if (!fs.existsSync(caminhoConfig)) {
-        caminhoConfig = path.join(__dirname, '../../config.json');
-    }
+    // Sempre salvar no diretório ProgramData para ser acessível a todos os usuários globalmente
+    let programDataPath = process.env.PROGRAMDATA || process.env.ALLUSERSPROFILE || 'C:\\ProgramData';
+    const dirGlobal = path.join(programDataPath, 'AmeScanner');
+    const caminhoConfig = path.join(dirGlobal, 'config.json');
 
     try {
+        if (!fs.existsSync(dirGlobal)) {
+            fs.mkdirSync(dirGlobal, { recursive: true });
+        }
         const configAtual = obterConfiguracoes();
         const configFinal = { ...configAtual, ...novasConfiguracoes };
         fs.writeFileSync(caminhoConfig, JSON.stringify(configFinal, null, 4), 'utf8');
         return true;
     } catch (err) {
-        console.error("Erro ao salvar o config.json.", err);
+        console.error("Erro ao salvar o config.json global.", err);
         return false;
     }
 }

@@ -500,6 +500,22 @@
             <div><strong>Prontuário:</strong> <span id="infoProntuario">--</span></div>
             <div><strong>Médico:</strong> <span id="infoMedico">--</span></div>
             <div><strong>Especialidade:</strong> <span id="infoEspecialidade">--</span></div>
+            <div style="grid-column: 1 / -1; margin-top: 8px;">
+                <label style="display: block; margin-bottom: 6px;">Categoria (Obrigatório)</label>
+                <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none; font-weight: normal; color: var(--text-main);">
+                        <input type="radio" name="categoriaDocumento" value="Ficha" checked> Ficha
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none; font-weight: normal; color: var(--text-main);">
+                        <input type="radio" name="categoriaDocumento" value="Laudo"> Laudo
+                    </label>
+                </div>
+                
+                <label for="tipoFicha" style="display: block; margin-bottom: 6px;">Tipo de Documento (Obrigatório)</label>
+                <select id="tipoFicha" style="width: 100%; padding: 10px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; outline: none;">
+                    <option value="">-- Selecione o Tipo de Documento --</option>
+                </select>
+            </div>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 12px;">
             <button id="btnIniciarScan" class="btn-success">
@@ -611,6 +627,16 @@
                             style="padding: 12px 16px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; flex: 1;">
                         <button id="btnSelecionarPastaContingencia" class="btn-secondary">Procurar</button>
                     </div>
+                </div>
+                <div class="input-wrapper" style="margin-top: 16px;">
+                    <label for="inputTiposFicha">Tipos de Ficha (um por linha):</label>
+                    <textarea id="inputTiposFicha" rows="4"
+                        style="padding: 12px 16px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; margin-top: 8px; width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                </div>
+                <div class="input-wrapper" style="margin-top: 16px;">
+                    <label for="inputTiposLaudo">Tipos de Laudo (um por linha):</label>
+                    <textarea id="inputTiposLaudo" rows="4"
+                        style="padding: 12px 16px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; margin-top: 8px; width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
                 </div>
             </div>
             <div class="modal-footer">

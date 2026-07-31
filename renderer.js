@@ -23,6 +23,11 @@ const inputPastaDestino = document.getElementById('inputPastaDestino');
 const btnSelecionarPastaContingencia = document.getElementById('btnSelecionarPastaContingencia');
 const inputPastaContingencia = document.getElementById('inputPastaContingencia');
 const inputUrlApi = document.getElementById('inputUrlApi');
+const inputTiposFicha = document.getElementById('inputTiposFicha');
+const inputTiposLaudo = document.getElementById('inputTiposLaudo');
+
+// Elemento do Tipo de Ficha
+const selectTipoFicha = document.getElementById('tipoFicha');
 
 // Elementos de Senha
 const modalSenha = document.getElementById('modalSenha');
@@ -76,8 +81,15 @@ btnBuscarAgendamento.addEventListener('click', async () => {
             document.getElementById('infoMedico').textContent = dados.medico || '--';
             document.getElementById('infoProntuario').textContent = dados.prontuario || '--';
             
+            // Popular select de tipos de ficha baseando na categoria selecionada
+            window.tiposFichaConfig = (await window.api.obterConfiguracoes()).tiposFicha || { Ficha: [], Laudo: [] };
+            if (Array.isArray(window.tiposFichaConfig)) {
+                window.tiposFichaConfig = { Ficha: window.tiposFichaConfig, Laudo: [] };
+            }
+            atualizarSelectTipoDocumento();
+            
             painelDadosAgendamento.style.display = 'flex';
-            mostrarStatus('Agendamento encontrado. Verifique os dados.', 'sucesso');
+            mostrarStatus('Agendamento encontrado. Selecione o tipo de documento e inicie.', 'sucesso');
         } else {
             mostrarStatus(resultado.erro, 'erro');
             painelDadosAgendamento.style.display = 'none';
@@ -91,6 +103,11 @@ btnBuscarAgendamento.addEventListener('click', async () => {
 
 // Evento: Digitalizar 1ª página
 btnIniciarScan.addEventListener('click', async () => {
+    if (!selectTipoFicha.value) {
+        mostrarStatus('Selecione o Tipo de Documento antes de iniciar a digitalização!', 'erro');
+        selectTipoFicha.focus();
+        return;
+    }
     await digitalizarProximaPagina();
 });
 
@@ -115,7 +132,8 @@ btnConcluir.addEventListener('click', async () => {
 
     try {
         const caminhos = paginasSessao.map(p => p.caminho);
-        const resultado = await window.api.concluirDocumento(prontuarioAtivo, caminhos, dadosAgendamentoAtual);
+        const tipoFichaSelecionado = selectTipoFicha.value;
+        const resultado = await window.api.concluirDocumento(prontuarioAtivo, caminhos, dadosAgendamentoAtual, tipoFichaSelecionado);
 
         if (resultado.sucesso) {
             mostrarStatus(
@@ -250,6 +268,24 @@ function mostrarStatus(mensagem, classe) {
     divStatus.className = classe ? `${classe} mostrar` : 'mostrar';
 }
 
+function atualizarSelectTipoDocumento() {
+    if (!window.tiposFichaConfig) return;
+    const categoriaSelecionada = document.querySelector('input[name="categoriaDocumento"]:checked').value;
+    const tipos = window.tiposFichaConfig[categoriaSelecionada] || [];
+    
+    selectTipoFicha.innerHTML = '<option value="">-- Selecione o Tipo de Documento --</option>';
+    tipos.forEach(tipo => {
+        const opt = document.createElement('option');
+        opt.value = tipo;
+        opt.textContent = tipo;
+        selectTipoFicha.appendChild(opt);
+    });
+}
+
+document.querySelectorAll('input[name="categoriaDocumento"]').forEach(radio => {
+    radio.addEventListener('change', atualizarSelectTipoDocumento);
+});
+
 // ----------------------------------------------------
 // Lógica de Configurações
 // ----------------------------------------------------
@@ -271,6 +307,14 @@ async function verificarSenha() {
         inputPastaDestino.value = config.pastaDestino || '';
         if (inputPastaContingencia) inputPastaContingencia.value = config.pastaContingencia || '';
         if (inputUrlApi) inputUrlApi.value = config.urlApi || 'http://172.35.0.14:3000/salutem-api/busca-escala/';
+        
+        let tipos = config.tiposFicha || { Ficha: [], Laudo: [] };
+        if (Array.isArray(tipos)) {
+            tipos = { Ficha: tipos, Laudo: [] };
+        }
+        if (inputTiposFicha) inputTiposFicha.value = (tipos.Ficha || []).join('\n');
+        if (inputTiposLaudo) inputTiposLaudo.value = (tipos.Laudo || []).join('\n');
+        
         modalConfiguracoes.classList.add('mostrar');
     } else {
         alert("Senha incorreta.");
@@ -401,9 +445,17 @@ if (btnConfirmarManual) {
         document.getElementById('infoMedico').textContent = med;
         document.getElementById('infoProntuario').textContent = pront;
         
-        painelDadosAgendamento.style.display = 'flex';
-        mostrarStatus('Sessão manual iniciada. Pronto para digitalizar.', 'sucesso');
-        modalManual.classList.remove('mostrar');
+        window.api.obterConfiguracoes().then(config => {
+            window.tiposFichaConfig = config.tiposFicha || { Ficha: [], Laudo: [] };
+            if (Array.isArray(window.tiposFichaConfig)) {
+                window.tiposFichaConfig = { Ficha: window.tiposFichaConfig, Laudo: [] };
+            }
+            atualizarSelectTipoDocumento();
+            
+            painelDadosAgendamento.style.display = 'flex';
+            mostrarStatus('Sessão manual iniciada. Selecione o tipo de documento e inicie.', 'sucesso');
+            modalManual.classList.remove('mostrar');
+        });
     });
 }
 
@@ -426,16 +478,23 @@ if (btnSelecionarPastaContingencia) {
 btnSalvarConfig.addEventListener('click', async () => {
     const novaPasta = inputPastaDestino.value.trim();
     const novaPastaCont = inputPastaContingencia ? inputPastaContingencia.value.trim() : '';
-    const novoCaminhoNaps2 = inputCaminhoNaps2.value.trim();
-    const novoPerfilScanner = inputPerfilScanner.value.trim();
     const novaUrlApi = inputUrlApi ? inputUrlApi.value.trim() : '';
+    
+    const novosTiposFicha = inputTiposFicha ? inputTiposFicha.value.split('\n').map(t => t.trim()).filter(t => t !== '') : [];
+    const novosTiposLaudo = inputTiposLaudo ? inputTiposLaudo.value.split('\n').map(t => t.trim()).filter(t => t !== '') : [];
+    
+    const configAtual = await window.api.obterConfiguracoes();
 
     const configuracoesParaSalvar = {
         urlApi: novaUrlApi || "http://172.35.0.14:3000/salutem-api/busca-escala/",
         pastaDestino: novaPasta || "C:\\EXAMES",
         pastaContingencia: novaPastaCont || "C:\\Contingencia\\Scanner",
-        caminhoNaps2: novoCaminhoNaps2 || "C:\\Softwares\\NAPS2\\NAPS2.Console.exe",
-        perfilScanner: novoPerfilScanner || "DS640"
+        caminhoNaps2: configAtual.caminhoNaps2,
+        perfilScanner: configAtual.perfilScanner,
+        tiposFicha: {
+            Ficha: novosTiposFicha,
+            Laudo: novosTiposLaudo
+        }
     };
     const sucesso = await window.api.salvarConfiguracoes(configuracoesParaSalvar);
     if (sucesso) {

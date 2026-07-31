@@ -214,9 +214,10 @@ async function digitalizarPagina(prontuario, indicePagina, configuracoes) {
  * @param {string[]} caminhosPaginas - Array com o caminho de cada imagem JPG escaneada.
  * @param {Object} configuracoes - Configurações carregadas do config.json.
  * @param {Object} [dadosAgendamento] - Opcional. Dados recuperados em contingência.
+ * @param {string} [tipoFicha] - Tipo da ficha (opcional, será apensado ao nome).
  * @returns {Promise<Object>} { sucesso: boolean, caminho?: string, contingencia?: boolean, erro?: string }
  */
-async function concluirDocumento(prontuario, caminhosPaginas, configuracoes, dadosAgendamento = null) {
+async function concluirDocumento(prontuario, caminhosPaginas, configuracoes, dadosAgendamento = null, tipoFicha = '') {
     return new Promise(async (resolve) => {
         if (!Array.isArray(caminhosPaginas) || caminhosPaginas.length === 0) {
             return resolve({
@@ -260,22 +261,33 @@ async function concluirDocumento(prontuario, caminhosPaginas, configuracoes, dad
 
         let pastaDestinoCompleta;
         let arquivoSaida;
+        
+        const sanitize = (name) => (name || 'Indefinido').toString().replace(/[<>:"/\\|?*]+/g, '-').trim();
 
         if (isContingenciaLocal) {
-            const sanitize = (name) => (name || 'Indefinido').toString().replace(/[<>:"/\\|?*]+/g, '-').trim();
             const ano = sanitize(dadosAgendamento.ano);
             const mes = sanitize(dadosAgendamento.mes);
             const dia = sanitize(dadosAgendamento.dia);
             const esp = sanitize(dadosAgendamento.especialidade);
             const med = sanitize(dadosAgendamento.medico);
             
+            // Sanitiza o tipoFicha para adicionar ao nome do arquivo
+            const tipoFichaSanitizado = sanitize(tipoFicha || 'Documento').replace(/\s+/g, '_').toUpperCase();
+            
             // Usa a pastaSalvar que já passou pelo teste de disponibilidade (padrão ou contingência)
             pastaDestinoCompleta = path.join(pastaSalvar, ano, mes, dia, esp, med);
-            arquivoSaida = path.join(pastaDestinoCompleta, `${prontuario}.pdf`);
+            arquivoSaida = path.join(pastaDestinoCompleta, `${prontuario}-${tipoFichaSanitizado}.pdf`);
         } else {
             const caminhoRelativoAPI = apiData.path;
             pastaDestinoCompleta = path.join(pastaSalvar, path.dirname(caminhoRelativoAPI));
-            arquivoSaida = path.join(pastaSalvar, caminhoRelativoAPI);
+            
+            // Sanitiza o tipoFicha e apensa ao nome base
+            const tipoFichaSanitizado = sanitize(tipoFicha || 'Documento').replace(/\s+/g, '_').toUpperCase();
+            const nomeBaseOriginal = path.basename(caminhoRelativoAPI, '.pdf');
+            // Remove o .pdf original se houver e coloca o tipo de ficha
+            const novoNomeArquivo = `${nomeBaseOriginal}-${tipoFichaSanitizado}.pdf`;
+            
+            arquivoSaida = path.join(pastaDestinoCompleta, novoNomeArquivo);
         }
         
         if (!fs.existsSync(pastaDestinoCompleta)) {

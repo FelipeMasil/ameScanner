@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { obterConfiguracoes, salvarConfiguracoes, verificarPastaDisponivel } = require('./src/config/configManager');
-const { digitalizarPagina, concluirDocumento, cancelarSessao, executarScan, buscarAgendamento, verificarApi, buscarAgendamentoContingencia, obterOpcoesContingencia } = require('./src/services/scannerService');
+const { digitalizarPagina, concluirDocumento, cancelarSessao, buscarAgendamento, verificarApi, buscarAgendamentoContingencia, obterOpcoesContingencia } = require('./src/services/scannerService');
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -57,20 +57,14 @@ ipcMain.handle('digitalizar-pagina', async (event, { prontuario, indice }) => {
 });
 
 // Conclui a digitalização combinando todas as imagens da sessão em um único arquivo PDF
-ipcMain.handle('concluir-documento', async (event, { prontuario, paginas, dadosAgendamento }) => {
+ipcMain.handle('concluir-documento', async (event, { prontuario, paginas, dadosAgendamento, tipoFicha }) => {
     const configuracoes = obterConfiguracoes();
-    return await concluirDocumento(prontuario, paginas, configuracoes, dadosAgendamento);
+    return await concluirDocumento(prontuario, paginas, configuracoes, dadosAgendamento, tipoFicha);
 });
 
 // Cancela a sessão atual e remove as imagens temporárias geradas
 ipcMain.handle('cancelar-sessao', async (event, { prontuario, paginas }) => {
     return cancelarSessao(prontuario, paginas);
-});
-
-// Compatibilidade retroativa
-ipcMain.handle('executar-scan', async (event, prontuario) => {
-    const configuracoes = obterConfiguracoes();
-    return await executarScan(prontuario, configuracoes);
 });
 
 // Configurações
